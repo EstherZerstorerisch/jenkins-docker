@@ -1,0 +1,13 @@
+name: Docker Image CI
+
+on:
+    push:
+        branches:
+            - main
+jobs:
+    build:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Build the Docker image
+              uses: actions/checkout@main
+              run: docker build . --file Dockerfile --tag myjenkins-blueocean:$(date +%s)
