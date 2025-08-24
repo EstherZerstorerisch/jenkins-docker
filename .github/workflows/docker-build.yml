@@ -9,5 +9,4 @@ jobs:
         runs-on: ubuntu-latest
         steps:
             - name: Build the Docker image
-              uses: actions/checkout@main
               run: docker build . --file Dockerfile --tag myjenkins-blueocean:$(date +%s)
