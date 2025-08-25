@@ -1,13 +1,72 @@
 name: Docker Image CI
 
 on:
-    push:
-        branches:
-            - main
+  push:
+    branches:
+      - main
+
 jobs:
-    build:
-        runs-on: ubuntu-latest
-        steps:    
-            - uses: actions/checkout@main
-            - name: Build the Docker image
-              run: docker build . --file Dockerfile --tag myjenkins-blueocean:$(date +%s)
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build and push Docker image
+        run: |
+          docker build . --file Dockerfile --tag ghcr.io/${{ github.repository }}:latest
+          docker push ghcr.io/${{ github.repository }}:latest
+
+  tailscale:
+    name: tailscale-node
+    runs-on: ubuntu-latest
+    steps:
+      - uses: tailscale/github-action@v3
+        with:
+          authkey: ${{ secrets.TS_KEY }}
+          statedir: /tmp/tailscale
+  ssh:
+    name: Execute remote SSH
+    runs-on: tailscale-node
+    steps:
+      - uses: appleboy/ssh-action@v1
+        name: Run docker:dind
+        with:
+            host: ${{ secrets.SSH_HOST }}
+            username: ${{ secrets.SSH_USERNAME }}
+            key: ${{ secrets.TS_KEY }}
+            port: ${{ secrets.SSH_PORT }}
+            script: | 
+                docker run --name jenkins-docker --rm --detach \
+                --privileged --network jenkins --network-alias docker \
+                --env DOCKER_TLS_CERTDIR=/certs \
+                --volume jenkins-docker-certs:/certs/client \
+                --volume jenkins-data:/var/jenkins_home \
+                --publish 2376:2376 \
+                docker:dind --storage-driver overlay2
+      - uses: appleboy/ssh-action@v1
+        name: Create jenkins container
+        with:
+            host: ${{ secrets.SSH_HOST }}
+            username: ${{ secrets.SSH_USERNAME }}
+            port: ${{ secrets.SSH_PORT }}
+            script: | 
+                    docker run \
+                    --name jenkins-blueocean \
+                    --restart=on-failure \
+                    --detach \
+                    --network jenkins \
+                    --env DOCKER_HOST=tcp://docker:2376 \
+                    --env DOCKER_CERT_PATH=/certs/client \
+                    --env DOCKER_TLS_VERIFY=1 \
+                    --publish 8080:8080 \
+                    --publish 50000:50000 \
+                    --volume jenkins-data:/var/jenkins_home \
+                    --volume jenkins-docker-certs:/certs/client:ro \
+                    ghcr.io/${{ github.repository }}:latest
+                            
