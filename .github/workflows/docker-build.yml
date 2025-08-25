@@ -19,7 +19,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Build and push Docker image
         run: |
-          echo "ghcr.io/${{ github.repository }}:latest" | tr '[:upper:]' '[:lower:]' > TAG_NAME
+          TAG_NAME=$(echo "ghcr.io/${{ github.repository }}:latest" | tr '[:upper:]' '[:lower:]')
           docker build . --file Dockerfile --tag $TAG_NAME
           docker push $TAG_NAME
 
