@@ -19,8 +19,9 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Build and push Docker image
         run: |
-          docker build . --file Dockerfile --tag ghcr.io/${{ github.repository }}:latest
-          docker push ghcr.io/${{ github.repository }}:latest
+          echo "ghcr.io/${{ github.repository }}:latest" | tr '[:upper:]' '[:lower:]' > TAG_NAME
+          docker build . --file Dockerfile --tag TAG_NAME
+          docker push TAG_NAME
 
   tailscale:
     name: tailscale-node
@@ -68,5 +69,5 @@ jobs:
                     --publish 50000:50000 \
                     --volume jenkins-data:/var/jenkins_home \
                     --volume jenkins-docker-certs:/certs/client:ro \
-                    ghcr.io/${{ github.repository }}:latest
+                    TAG_NAME
                             
