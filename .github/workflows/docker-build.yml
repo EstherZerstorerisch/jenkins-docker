@@ -20,8 +20,8 @@ jobs:
       - name: Build and push Docker image
         run: |
           echo "ghcr.io/${{ github.repository }}:latest" | tr '[:upper:]' '[:lower:]' > TAG_NAME
-          docker build . --file Dockerfile --tag TAG_NAME
-          docker push TAG_NAME
+          docker build . --file Dockerfile --tag $TAG_NAME
+          docker push $TAG_NAME
 
   tailscale:
     name: tailscale-node
